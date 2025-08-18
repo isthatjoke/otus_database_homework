@@ -1,0 +1,16 @@
+services:
+
+  ubuntu:
+    image: ubuntu:latest
+    container_name: ubuntu
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    command: tail -f /dev/null
+    volumes:
+      - new_pg_volume:/mnt/data
+  
+volumes:
+  new_pg_volume:
+    name: new_pg_volume
+    external: true

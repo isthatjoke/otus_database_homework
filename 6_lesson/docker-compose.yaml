@@ -1,0 +1,67 @@
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres_test
+    command:
+        - "postgres"
+        - "-c"
+        - "max_connections=100"
+        - "-c"
+        - "shared_buffers=1GB"
+        - "-c"
+        - "effective_cache_size=3GB"
+        - "-c"
+        - "work_mem=14MB"
+        - "-c"
+        - "maintenance_work_mem=205MB"
+        - "-c"
+        - "min_wal_size=2GB"
+        - "-c"
+        - "max_wal_size=3GB"
+        - "-c"
+        - "checkpoint_completion_target=0.9"
+        - "-c"
+        - "wal_buffers=-1"
+        - "-c"
+        - "random_page_cost=1.1"
+        - "-c"
+        - "effective_io_concurrency=200"
+        - "-c"
+        - "max_worker_processes=8"
+        - "-c"
+        - "max_parallel_workers_per_gather=2"
+        - "-c"
+        - "max_parallel_workers=2"
+
+    environment:
+      POSTGRES_DB: "test_db"
+      POSTGRES_USER: "db_user"
+      POSTGRES_PASSWORD: "gsd7_923jeff3"
+      PGDATA: "/var/lib/postgresql/data"
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+      - ./sysbench-tpcc:/opt/sysbench
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U db_user -d test_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 4G
+    networks:
+      - postgres_test
+
+volumes:
+  postgres_test_data:
+
+networks:
+  postgres_test:
+    driver: bridge

@@ -169,7 +169,8 @@ EXECUTE FUNCTION tf_sale_canceled();
       WHERE G.goods_id = NEW.good_id;
 
 
-    INSERT INTO good_sum_mart (v_good_name, v_sale_amount);
+    INSERT INTO good_sum_mart (good_name, sum_sale)
+    VALUES (v_good_name, v_sale_amount);
     
     
     RETURN NEW;
@@ -199,15 +200,10 @@ EXECUTE FUNCTION tf_sale_added();
 
   BEGIN
 
-    SELECT G.good_name
-      INTO v_old_good_name
+    SELECT G.good_name, G.good_price * OLD.sales_qty
+      INTO v_old_good_name, v_old_sale_amount
       FROM goods G
-      WHERE G.goods_id = OLD.good_id
-
-    SELECT G.good_price * OLD.sales_qty
-      INTO v_old_sale_amount
-      FROM goods G
-      WHERE G.goods_id = OLD.good_id
+      WHERE G.goods_id = OLD.good_id;
 
     DELETE FROM good_sum_mart
       WHERE good_name = v_old_good_name
@@ -262,17 +258,12 @@ CREATE OR REPLACE FUNCTION tf_sale_update()
   SELECT G.good_price * OLD.sales_qty
     INTO v_old_sale_amount
     FROM goods G
-    WHERE G.goods_id = OLD.good_id
+    WHERE G.goods_id = OLD.good_id;
 
-  SELECT G.good_name
-    INTO v_good_name
+  SELECT G.good_name, G.good_price * NEW.sales_qty
+    INTO v_good_name, v_new_sale_amount
     FROM goods G
-    WHERE G.goods_id = NEW.good_id
-
-  SELECT G.good_price * NEW.sales_qty
-    INTO v_new_sale_amount
-    FROM goods G
-    WHERE G.goods_id = NEW.good_id
+    WHERE G.goods_id = NEW.good_id;
 
   UPDATE good_sum_mart
     SET sum_sale = v_new_sale_amount

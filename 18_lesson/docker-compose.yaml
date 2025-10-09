@@ -4,8 +4,8 @@ services:
     image: postgres:17
     container_name: postgres_test
     environment:
-      POSTGRES_DB: "test_db"
-      POSTGRES_USER: "db_user"
+      POSTGRES_DB: "postgres"
+      POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "gsd7_923jeff3"
       PGDATA: "/var/lib/postgresql/data"
     volumes:

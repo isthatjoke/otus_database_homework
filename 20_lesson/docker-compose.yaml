@@ -1,0 +1,33 @@
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: postgres_test
+    environment:
+      POSTGRES_DB: "postgres"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "gsd7_923jeff3"
+      PGDATA: "/var/lib/postgresql/data"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U db_user -d test_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+    networks:
+      - postgres_test
+
+volumes:
+  postgres_test_data:
+
+networks:
+  postgres_test:
+    driver: bridge

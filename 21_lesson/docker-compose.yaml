@@ -1,0 +1,86 @@
+
+services:
+  postgres1:
+    image: postgres:17
+    container_name: postgres1
+    environment:
+      POSTGRES_DB: "postgres"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "gsd7_923jeff3"
+      PGDATA: "/var/lib/postgresql/data"
+    volumes:
+      - postgres1:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U db_user -d test_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+    networks:
+      - postgres_test
+
+  postgres2:
+    image: postgres:17
+    container_name: postgres2
+    environment:
+      POSTGRES_DB: "postgres"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "gsd7_923jeff3"
+      PGDATA: "/var/lib/postgresql/data"
+    volumes:
+      - postgres2:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U db_user -d test_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+    networks:
+      - postgres_test
+
+  postgres3:
+    image: postgres:17
+    container_name: postgres3
+    environment:
+      POSTGRES_DB: "postgres"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "gsd7_923jeff3"
+      PGDATA: "/var/lib/postgresql/data"
+    volumes:
+      - postgres3:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U db_user -d test_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+    networks:
+      - postgres_test
+
+
+volumes:
+  postgres1:
+  postgres2:
+  postgres3:
+
+networks:
+  postgres_test:
+    driver: bridge

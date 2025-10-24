@@ -70,3 +70,6 @@
   --verbose \
   /var/lib/postgresql/backups/two_tables_backup.dump
   ```
+![alt text](image-1.png)
+![alt text](image.png)
+

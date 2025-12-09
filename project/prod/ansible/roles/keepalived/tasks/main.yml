@@ -1,0 +1,56 @@
+
+- name: Install Keepalived
+  apt:
+    name: keepalived
+    state: present
+
+- name: Create Keepalived config directory
+  file:
+    path: "{{ keepalived_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+
+- name: Configure Keepalived
+  template:
+    src: keepalived.conf.j2
+    dest: "{{ keepalived_config_dir }}/keepalived.conf"
+
+- name: Enable IP forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    state: present
+
+- name: Start and enable Keepalived service
+  systemd:
+    name: keepalived
+    state: started
+    enabled: yes
+
+- name: Create scripts directory
+  file:
+    path: /etc/keepalived/scripts
+    state: directory
+    mode: '0755'
+
+- name: Create healthcheck script
+  copy:
+    content: |
+      #!/bin/bash
+      systemctl is-active --quiet haproxy
+      exit $?
+    dest: /etc/keepalived/check_haproxy.sh
+    mode: '+x'
+
+- name: Create notify scripts
+  copy:
+    content: |
+      #!/bin/bash
+      echo "$(date): $1 - $2" >> /var/log/keepalived-notify.log
+    dest: /etc/keepalived/scripts/notify_{{ item }}.sh
+    mode: '0755'
+  loop:
+    - master
+    - backup
+    - fault

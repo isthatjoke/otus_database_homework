@@ -1,0 +1,26 @@
+- name: Базовая настройка всех серверов
+  hosts: all
+  roles:
+    - setup
+
+- name: Настройка etcd кластера
+  hosts: etcd_cluster
+  roles:
+    - etcd
+
+- name: Настройка PostgreSQL с Patroni
+  hosts: postgres_cluster
+  roles:
+    - postgres
+
+- name: Настройка HAProxy
+  hosts: haproxy_servers
+  roles:
+    - haproxy
+
+# - name: Настройка Keepalived для High Availability
+#   hosts: haproxy_servers
+#   roles:
+#     - keepalived
+
+

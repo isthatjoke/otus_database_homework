@@ -1,0 +1,43 @@
+# {{ ansible_managed }}
+global_defs {
+    router_id {{ inventory_hostname }}
+    vrrp_skip_check_adv_addr
+    vrrp_strict
+    vrrp_garp_interval 0
+    vrrp_gna_interval 0
+}
+
+vrrp_script chk_haproxy {
+    script "/usr/bin/killall -0 haproxy"
+    interval 2
+    timeout 2
+    fall 2
+    rise 2
+    weight 50
+}
+
+vrrp_instance VI_1 {
+    state {{ keepalived_state }}
+    interface {{ keepalived_interface }}
+    virtual_router_id {{ keepalived_virtual_router_id }}
+    priority {{ keepalived_priority }}
+    advert_int 1
+
+    authentication {
+        auth_type PASS
+        auth_pass {{ keepalived_auth_pass }}
+    }
+
+    virtual_ipaddress {
+        {{ virtual_ip }}/24 dev {{ keepalived_interface }}
+    }
+
+    track_script {
+        chk_haproxy
+    }
+
+    # Уведомления для отладки
+    notify_master "/etc/keepalived/scripts/notify_master.sh"
+    notify_backup "/etc/keepalived/scripts/notify_backup.sh"
+    notify_fault "/etc/keepalived/scripts/notify_fault.sh"
+}

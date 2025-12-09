@@ -1,0 +1,20 @@
+FROM postgres:17
+
+RUN apt-get update && apt-get install -y \
+    python3-pip \
+    python3-venv \
+    curl \
+    wget \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m venv /opt/patroni && \
+    /opt/patroni/bin/pip install --upgrade pip && \
+    /opt/patroni/bin/pip install patroni[etcd3,psycopg2-binary]
+
+RUN ln -s /opt/patroni/bin/patroni /usr/local/bin/patroni && \
+    ln -s /opt/patroni/bin/patronictl /usr/local/bin/patronictl
+
+RUN chmod -R 0750 /var/lib/postgresql/data
+
+USER postgres

@@ -1,0 +1,78 @@
+# {{ ansible_managed }}
+global
+    maxconn 4000
+    log /dev/log local0 info
+    stats socket /var/run/haproxy/admin.sock mode 660 level admin
+    tune.ssl.default-dh-param 2048
+    user haproxy
+    group haproxy
+
+defaults
+    mode tcp
+    timeout connect 5000ms
+    timeout client 50000ms
+    timeout server 50000ms
+    timeout tunnel 1h
+    option tcplog
+    option dontlognull
+    option redispatch
+    retries 3
+    log global
+
+frontend stats
+    bind *:{{ haproxy_stats_port }}
+    mode http
+    stats enable
+    stats uri /stats
+    stats refresh 10s
+    stats admin if TRUE
+    log global
+    stats auth {{ haproxy_stats_username }}:{{ haproxy_stats_password }}
+
+{% set patroni_auth_b64 = ('patroni_admin:' + postgres_admin_password) | b64encode %}
+
+listen postgres-write
+    bind *:{{ haproxy_postgres_port }}
+    mode tcp
+    balance first
+    
+    # HTTP check для определения primary
+    option httpchk GET /primary
+    # Сначала connect, потом send
+    http-check connect
+    http-check send hdr Authorization "Basic {{ patroni_auth_b64 }}"
+    http-check expect status 200
+    
+    default-server inter 3s fall 3 rise 2 on-marked-down shutdown-sessions
+{% for host in groups['postgres_cluster'] %}
+    server {{ hostvars[host].patroni_name }} {{ hostvars[host].ansible_host }}:5432 check port 8008
+{% endfor %}
+
+listen postgres-read
+    bind *:{{ haproxy_postgres_read_port }}
+    mode tcp
+    balance roundrobin
+    
+    option httpchk GET /replica
+    http-check connect
+    http-check send hdr Authorization "Basic {{ patroni_auth_b64 }}"
+    http-check expect status 200
+    
+    default-server inter 3s fall 3 rise 2
+{% for host in groups['postgres_cluster'] %}
+    server {{ hostvars[host].patroni_name }} {{ hostvars[host].ansible_host }}:5432 check port 8008
+{% endfor %}
+
+listen patroni-api
+    bind *:8008
+    mode tcp
+    balance roundrobin
+    
+    option httpchk GET /health
+    http-check connect
+    http-check send hdr Authorization "Basic {{ patroni_auth_b64 }}"
+{% for host in groups['postgres_cluster'] %}
+    server {{ hostvars[host].patroni_name }} {{ hostvars[host].ansible_host }}:8008 check inter 2s
+{% endfor %}
+
+

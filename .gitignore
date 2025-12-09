@@ -1,0 +1,2 @@
+./project/.venv/
+./project/prod/ansible/.vault_pass.txt

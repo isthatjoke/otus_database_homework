@@ -1,0 +1,40 @@
+
+all:
+  children:
+    # Кластер PostgreSQL с Patroni
+    postgres_cluster:
+      hosts:
+        server1:
+          ansible_host: 31.56.117.125
+          patroni_name: patroni1
+        server2:
+          ansible_host: 31.56.117.127
+          patroni_name: patroni2
+        server3:
+          ansible_host: 31.56.117.147
+          patroni_name: patroni3
+
+    # Кластер etcd (на тех же серверах что и PostgreSQL)
+    etcd_cluster:
+      hosts:
+        server1:
+          ansible_host: 31.56.117.125
+          etcd_name: etcd1
+        server2:
+          ansible_host: 31.56.117.127
+          etcd_name: etcd2
+        server3:
+          ansible_host: 31.56.117.147
+          etcd_name: etcd3
+
+    # HAProxy сервер
+    haproxy_servers:
+      hosts:
+        server4:
+          ansible_host: 31.59.41.93
+
+
+
+
+
+

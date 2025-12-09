@@ -1,0 +1,129 @@
+
+- name: Download and unarchive etcd
+  unarchive:
+    src: "\
+      https://github.com/etcd-io/etcd/releases/download/v{{ etcd_version }}/etcd-v{{ etcd_version }}-linux-amd64.tar.gz"
+    dest: /tmp
+    remote_src: true
+
+- name: Move etcd binaries to bin folder
+  copy:
+    src: "/tmp/etcd-v{{ etcd_version }}-linux-amd64/{{ item }}"
+    dest: "{{ etcd_bin_dir }}/"
+    mode: "0755"
+    remote_src: true
+  loop:
+    - etcd
+    - etcdctl
+    - etcdutl
+
+- name: Create etcd user and group
+  user:
+    name: etcd
+    system: yes
+    shell: /usr/sbin/nologin
+
+- name: Create etcd data directory
+  file:
+    path: "{{ etcd_data_dir }}"
+    state: directory
+
+- name: Create etcd config directory
+  file:
+    path: "{{ etcd_config_dir }}"
+    state: directory
+    owner: etcd
+    group: etcd
+    mode: "0750"
+
+- name: Configure etcd
+  template:
+    src: etcd.conf.j2
+    dest: "{{ etcd_config_dir }}/etcd.conf"
+    owner: etcd
+    group: etcd
+    mode: "0640"
+
+- name: Create etcd systemd service
+  template:
+    src: etcd.service.j2
+    dest: "/etc/systemd/system/etcd.service"
+    mode: "0644"
+  notify:
+    - daemon reload
+
+- name: Start and enable etcd service
+  systemd:
+    name: etcd
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Wait for etcd to start
+  wait_for:
+    port: 2379
+    delay: 5
+    timeout: 60
+
+- name: Configure etcd authentication (first node only)
+  block:
+    - name: Check if root user already exists
+      shell: etcdctl user list 2>/dev/null | grep -q root
+      register: root_exists
+      failed_when: false
+      changed_when: false
+      
+    - name: Create root user (if not exists)
+      command:
+        cmd: etcdctl user add root --new-user-password="{{ etcd_root_password }}"
+        warn: false
+      when: not root_exists.rc == 0
+      register: create_root
+      changed_when: create_root.rc == 0
+      
+    - name: Check if auth is enabled
+      command:
+        cmd: etcdctl auth status
+        warn: false
+      register: auth_status
+      failed_when: false
+      changed_when: false
+      
+    - name: Enable etcd auth
+      command:
+        cmd: etcdctl --user "root:{{ etcd_root_password }}" auth enable
+        warn: false
+      when: "'enabled' not in auth_status.stdout"
+      register: enable_auth
+      changed_when: enable_auth.rc == 0
+      
+    - name: Create Patroni user
+      command:
+        cmd: etcdctl --user "root:{{ etcd_root_password }}" user add patroni --new-user-password="{{ etcd_patroni_password }}"
+        warn: false
+      register: create_user
+      failed_when: "'already exists' not in create_user.stderr and create_user.rc != 0"
+      changed_when: create_user.rc == 0
+      
+    - name: Create role for Patroni
+      command:
+        cmd: etcdctl --user "root:{{ etcd_root_password }}" role add patroni_role
+        warn: false
+      register: create_role
+      failed_when: "'already exists' not in create_role.stderr and create_role.rc != 0"
+      changed_when: create_role.rc == 0
+      
+    - name: Grant permissions to Patroni role
+      command:
+        cmd: etcdctl --user "root:{{ etcd_root_password }}" role grant-permission patroni_role --prefix=true readwrite /service/
+        warn: false
+      changed_when: true
+      
+    - name: Assign role to user
+      command:
+        cmd: etcdctl --user "root:{{ etcd_root_password }}" user grant-role patroni patroni_role
+        warn: false
+      changed_when: true
+      
+  when: inventory_hostname == groups['etcd'][0] 
+  tags: etcd_auth

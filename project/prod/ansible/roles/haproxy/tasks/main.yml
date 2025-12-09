@@ -1,0 +1,63 @@
+
+- name: Download and unarchive haproxy
+  unarchive:
+    src: "\
+      https://www.haproxy.org/download/3.3/src/haproxy-{{ haproxy_version }}.tar.gz"
+    dest: "/tmp"
+    remote_src: true
+
+- name: Build haproxy
+  shell: |
+    set -e
+    cd /tmp/haproxy-{{ haproxy_version }}
+    make clean
+    make -j$(nproc) \
+    TARGET=linux-glibc \
+    USE_OPENSSL=1 \
+    USE_PCRE=1 \
+    USE_ZLIB=1
+    make install
+
+    useradd -r -s /usr/sbin/nologin haproxy 2>/dev/null || true
+  args:
+    executable: "/bin/bash"
+    creates: "/usr/local/sbin/haproxy"
+
+- name: Create haproxy config directory
+  file:
+    path: "{{ haproxy_config_dir }}"
+    state: directory
+    owner: haproxy
+    group: haproxy
+    mode: "0750"
+
+- name: Configure haproxy.cfg
+  template:
+    src: haproxy.cfg.j2
+    dest: "{{ haproxy_config_dir }}/haproxy.cfg"
+    owner: haproxy
+    group: haproxy
+    mode: "0640"
+
+- name: Configure haproxy.service
+  template:
+    src: haproxy.service.j2
+    dest: "/etc/systemd/system/haproxy.service"
+    mode: "0644"
+  notify:
+    - daemon reload
+
+- name: Create haproxy pid directory
+  file:
+    path: "/run/haproxy"
+    state: directory
+    owner: haproxy
+    group: haproxy
+    mode: "0750"
+
+- name: Start and enable haproxy service
+  systemd:
+    name: haproxy
+    state: started
+    enabled: yes
+    daemon_reload: yes

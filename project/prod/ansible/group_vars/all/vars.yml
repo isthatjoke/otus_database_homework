@@ -1,0 +1,43 @@
+# ansible
+ansible_ssh_port: 14022
+ansible_user: root
+ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+
+# PostgreSQL
+postgres_version: "17"
+
+# Patroni
+patroni_scope: "postgres-cluster"
+patroni_restapi_port: 8008
+patroni_config_dir: "/etc/patroni"
+patroni_etcd_hosts: "31.56.117.125:2379,31.56.117.127:2379,31.56.117.147:2379"
+ntfy_topic: "abbott_test_alerts"
+ntfy_url: "https://ntfy.sh"
+
+# etcd
+etcd_version: "3.6.6"
+etcd_data_dir: "/var/lib/etcd"
+etcd_config_dir: "/etc/etcd"
+etcd_bin_dir: "/usr/bin/"
+etcd_initial_cluster: "etcd1=http://31.56.117.125:2380,etcd2=http://31.56.117.127:2380,etcd3=http://31.56.117.147:2380"
+etcd_heartbet_interval: "500"
+etcd_election_timeout: "5000"
+etcd_initial_cluster_token: "etcd-cluster-token"
+etcd_election_cluster_state: "new"
+
+# HAProxy
+haproxy_stats_port: 8404
+haproxy_postgres_port: 5432
+haproxy_postgres_read_port: 5433
+haproxy_config_dir: "/etc/haproxy"
+haproxy_version: "3.3.0"
+
+
+# Keepalived
+# virtual_ip: "172.25.0.100"
+# keepalived_interface: "eth0"
+# keepalived_virtual_router_id: 51
+# keepalived_config_dir: "/etc/keepalived"
+
+
+

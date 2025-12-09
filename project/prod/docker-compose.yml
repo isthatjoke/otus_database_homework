@@ -1,0 +1,74 @@
+networks:
+  cluster_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/24
+
+x-server-common:
+  &server-common
+  build: 
+    dockerfile: dockerfile.vm
+  restart: unless-stopped
+  volumes:
+      - ./supervisord.conf:/etc/supervisor/conf.d/supervisord.conf:ro
+
+services:
+
+  server1:
+    <<: *server-common
+    container_name: server1
+    hostname: server1
+    networks:
+      cluster_network:
+        ipv4_address: 172.25.0.11
+    ports:
+      - "2221:22"
+
+
+  server2:
+    <<: *server-common
+    container_name: server2
+    hostname: server2
+    networks:
+      cluster_network:
+        ipv4_address: 172.25.0.12
+    ports:
+      - "2222:22"
+
+
+  server3:
+    <<: *server-common
+    container_name: server3
+    hostname: server3
+    networks:
+      cluster_network:
+        ipv4_address: 172.25.0.13
+    ports:
+      - "2223:22"
+
+  
+  server4:
+    <<: *server-common
+    container_name: server4
+    hostname: server4
+    networks:
+      cluster_network:
+        ipv4_address: 172.25.0.14
+    ports:
+      - "2224:22"
+      # - "5432:5432"
+      # - "8404:8404"
+
+
+  server5:
+    <<: *server-common
+    container_name: server5
+    hostname: server5
+    networks:
+      cluster_network:
+        ipv4_address: 172.25.0.15
+    ports:
+      - "2225:22"
+
+

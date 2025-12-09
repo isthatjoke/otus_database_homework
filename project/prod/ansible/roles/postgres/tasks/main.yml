@@ -1,0 +1,116 @@
+
+- name: Install PostgreSQL
+  apt:
+    name: "postgresql-{{ postgres_version }}"
+    state: present
+
+- name: Ensure PostgreSQL directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: '0755'
+  loop:
+    - /var/lib/postgresql/{{ postgres_version }}
+    - /var/run/postgresql
+
+- name: Stop PostgreSQL service before Patroni
+  systemd:
+    name: postgresql
+    state: stopped
+    enabled: no
+  ignore_errors: yes
+
+- name: Remove postgresql auto initiated data
+  file:
+    path: /var/lib/postgresql/{{ postgres_version }}/main
+    state: absent
+
+- name: Install Python and pip for Patroni
+  apt:
+    name:
+      - python3
+      - python3-pip
+      - python3-venv
+      - python3-psycopg2
+    state: present
+
+- name: Create virtual environment for Patroni
+  command: python3 -m venv /opt/patroni
+  args:
+    creates: /opt/patroni/bin/activate
+
+- name: Install Patroni in virtual environment
+  pip:
+    name:
+      - patroni[etcd3,psycopg2-binary]
+    virtualenv: /opt/patroni
+
+- name: Create symlinks for Patroni
+  file:
+    src: "/opt/patroni/bin/patroni"
+    dest: "/usr/local/bin/patroni"
+    state: link
+    force: yes
+
+- name: Create symlinks for patronictl
+  file:
+    src: "/opt/patroni/bin/patronictl"
+    dest: "/usr/local/bin/patronictl" 
+    state: link
+    force: yes
+
+- name: Create Patroni config directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: "0755"
+  loop: 
+    - "{{ patroni_config_dir }}"
+    - "{{ patroni_config_dir }}/scripts"
+    - /var/log/patroni
+
+- name: Configure Patroni
+  template:
+    src: patroni.yml.j2
+    dest: "{{ patroni_config_dir }}/patroni.yml"
+    owner: postgres
+    group: postgres
+    mode: '0640'
+
+- name: Configure Patronictl
+  template:
+    src: patronictl.yml.j2
+    dest: "{{ patroni_config_dir }}/patronictl.yml"
+    owner: postgres
+    group: postgres
+    mode: '0640'
+
+- name: Create systemd service for Patroni
+  template:
+    src: patroni.service.j2
+    dest: "/etc/systemd/system/patroni.service"
+    mode: '0640'
+  notify:
+    - daemon reload
+
+- name: Create patroni notification config
+  template:
+    src: patroni-notify.sh.j2
+    dest: "{{ patroni_config_dir }}/scripts/patroni-notify.sh"
+    owner: postgres
+    group: postgres
+    mode: "+x"
+
+- name: Start and enable Patroni service
+  systemd:
+    name: patroni
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+
+# patronictl -c /etc/patroni/patroni.yml list

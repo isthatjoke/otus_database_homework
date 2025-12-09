@@ -1,0 +1,65 @@
+- name: Update package cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install common packages
+  apt:
+    name:
+      - htop
+      - net-tools
+      - telnet
+      - curl
+      - wget
+      - gnupg
+      - software-properties-common
+      - python3-apt
+      - psmisc
+      - build-essential
+      - libssl-dev 
+      - libpcre3-dev 
+      - zlib1g-dev
+    state: present
+
+- name: Set timezone
+  timezone:
+    name: UTC
+
+- name: Configure sysctl parameters
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  loop:
+    - { name: 'net.core.somaxconn', value: '1024' }
+    - { name: 'net.ipv4.tcp_max_syn_backlog', value: '2048' }
+    - { name: 'fs.file-max', value: '65536' }
+
+- name: Increase limits for postgres user
+  lineinfile:
+    path: /etc/security/limits.conf
+    line: "postgres soft nofile 65536"
+    create: yes
+
+- name: Get Ubuntu codename
+  shell: lsb_release -cs
+  register: ubuntu_codename
+
+- name: Debug codename
+  debug:
+    var: ubuntu_codename.stdout
+
+- name: Add PostgreSQL signing key
+  apt_key:
+    url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
+    state: present
+
+- name: Add PostgreSQL APT repository
+  apt_repository:
+    repo: "deb http://apt.postgresql.org/pub/repos/apt {{ ubuntu_codename.stdout }}-pgdg main"
+    state: present
+
+- name: Update package cache after adding repo
+  apt:
+    update_cache: yes

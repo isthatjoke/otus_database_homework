@@ -1,0 +1,20 @@
+# {{ ansible_managed }}
+[Unit]
+Description=High Availability PostgreSQL Cluster - Patroni
+After=syslog.target network.target
+
+[Service]
+Type=simple
+User=postgres
+Group=postgres
+Environment=PGDATA=/var/lib/postgresql/{{ postgres_version }}/main
+ExecStart=/usr/local/bin/patroni {{ patroni_config_dir }}/patroni.yml
+
+KillMode=process
+TimeoutSec=30
+Restart=no
+RestartSec=10s
+
+
+[Install]
+WantedBy=multi-user.target

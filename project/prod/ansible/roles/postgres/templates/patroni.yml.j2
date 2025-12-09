@@ -1,0 +1,126 @@
+# {{ ansible_managed }}
+scope: {{ patroni_scope }}
+name: {{ patroni_name }}
+
+restapi:
+  listen: 0.0.0.0:{{ patroni_restapi_port }}
+  connect_address: {{ ansible_host }}:{{ patroni_restapi_port }}
+  authentication:
+    username: patroni_admin
+    password: "{{ postgres_admin_password }}"
+
+etcd3:
+  hosts: "{{ patroni_etcd_hosts }}"
+  protocol: http
+  username: "patroni"
+  password: "{{ etcd_patroni_password }}"
+  retry_timeout: 10
+  ttl: 30
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    master_start_timeout: 300
+    synchronous_mode: false
+    
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        listen_addresses: '*'
+        port: 5432
+        max_connections: 100
+        shared_buffers: 128MB
+        wal_level: replica
+        wal_log_hints: 'on'
+        archive_mode: 'on'
+        archive_command: '/bin/true'
+        max_wal_senders: 10
+        wal_keep_size: 128MB
+        hot_standby: 'on'
+        hot_standby_feedback: 'on'
+        max_replication_slots: 10
+        wal_sender_timeout: 60s
+        synchronous_commit: 'off'
+        checkpoint_timeout: 15min
+
+  initdb:
+  - encoding: UTF8
+  - data-checksums
+
+  pg_hba:
+{% for host in groups['postgres_cluster'] %}
+  - host replication replicator {{ hostvars[host].ansible_host }}/32 md5
+{% endfor %}
+{% for host in groups['postgres_cluster'] %}
+  - host all all {{ hostvars[host].ansible_host }}/32 md5
+{% endfor %}
+{% for host in groups['haproxy_servers'] %}
+  - host all all {{ hostvars[host].ansible_host }}/32 md5
+{% endfor %}
+
+  users:
+    admin:
+      password: "{{ postgres_admin_password }}"
+      options:
+        - createrole
+        - createdb
+        - login
+    postgres:
+      password: "{{ postgres_superuser_password }}"
+    replicator:
+      password: "{{ postgres_replication_password }}"
+      options:
+        - replication
+        - login
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: {{ ansible_host }}:5432
+  data_dir: /var/lib/postgresql/{{ postgres_version }}/main
+  bin_dir: /usr/lib/postgresql/{{ postgres_version }}/bin
+  
+  authentication:
+    replication:
+      username: replicator
+      password: "{{ postgres_replication_password }}"
+    superuser:
+      username: postgres
+      password: "{{ postgres_superuser_password }}"
+    
+  parameters:
+    unix_socket_directories: '/var/run/postgresql'
+    
+  callbacks:
+    on_start: {{ patroni_config_dir }}/scripts/patroni-notify.sh
+    on_stop: {{ patroni_config_dir }}/scripts/patroni-notify.sh
+    on_role_change: {{ patroni_config_dir }}/scripts/patroni-notify.sh
+    on_reload: {{ patroni_config_dir }}/scripts/patroni-notify.sh
+    on_restart: {{ patroni_config_dir }}/scripts/patroni-notify.sh
+
+watchdog:
+  mode: off
+
+tags:
+  nofailover: false
+  clonefrom: false
+  noloadbalance: false
+
+  log:
+  #  DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: INFO
+  
+  format: '%(asctime)s %(levelname)s: %(message)s'
+  
+  dateformat: '%Y-%m-%d %H:%M:%S'
+  
+  handlers:
+    - class: logging.handlers.RotatingFileHandler
+      formatter: default
+      filename: /var/log/patroni/patroni.log
+      maxBytes: 10485760  # 10MB
+      backupCount: 5
+      encoding: utf8

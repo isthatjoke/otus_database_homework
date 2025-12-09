@@ -1,0 +1,30 @@
+# {{ ansible_managed }}
+[Unit]
+Description=HAProxy Load Balancer
+After=network.target
+
+[Service]
+ExecStartPre=/usr/local/sbin/haproxy -f {{ haproxy_config_dir }}/haproxy.cfg -c
+ExecStart=/usr/local/sbin/haproxy -Ws -f {{ haproxy_config_dir }}/haproxy.cfg
+ExecReload/usr/local/sbin/haproxy -f {{ haproxy_config_dir }}/haproxy.cfg -c -sf
+KillMode=mixed
+Restart=always
+RestartSec=2
+SuccessExitStatus=143
+Type=notify
+
+# User and group
+User=haproxy
+Group=haproxy
+
+# Security
+#CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+# AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+NoNewPrivileges=true
+
+RuntimeDirectory=haproxy
+RuntimeDirectoryMode=0750
+PIDFile=/run/haproxy/haproxy.pid
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+# {{ ansible_managed }}
+ETCD_NAME="{{ etcd_name }}"
+ETCD_DATA_DIR="{{ etcd_data_dir }}"
+ETCD_LISTEN_PEER_URLS="http://{{ ansible_host }}:2380"
+ETCD_LISTEN_CLIENT_URLS="http://{{ ansible_host }}:2379,http://localhost:2379"
+ETCD_INITIAL_ADVERTISE_PEER_URLS="http://{{ ansible_host }}:2380"
+ETCD_ADVERTISE_CLIENT_URLS="http://{{ ansible_host }}:2379"
+ETCD_INITIAL_CLUSTER="{{ etcd_initial_cluster }}"
+ETCD_INITIAL_CLUSTER_TOKEN="{{ etcd_initial_cluster_token }}"
+ETCD_INITIAL_CLUSTER_STATE="{{ etcd_election_cluster_state }}"
+ETCD_HEARTBEAT_INTERVAL: "{{ etcd_heartbet_interval }}"
+ETCD_ELECTION_TIMEOUT: "{{ etcd_election_timeout }}"
